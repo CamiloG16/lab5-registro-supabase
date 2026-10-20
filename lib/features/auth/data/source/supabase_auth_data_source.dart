@@ -24,6 +24,25 @@ class SupabaseAuthDataSource {
     }
   }
 
+  Future<AuthUser> signIn({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      return _toAuthUser(response.user);
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    }
+  }
+
+  Future<void> signOut() async {
+    await _client.auth.signOut();
+  }
+
   AuthUser _toAuthUser(User? user) {
     if (user == null) {
       throw Exception('Auth no devolvió el usuario');

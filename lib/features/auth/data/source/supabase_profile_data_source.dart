@@ -2,8 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:moviles_auth/features/auth/domain/entities/profile.dart';
 
-/// El insert en la tabla profiles. En Dart el campo se llama fullName; en la
-/// tabla, la columna es full_name. Solo este archivo lo sabe.
+/// El insert y la lectura en la tabla profiles. En Dart el campo se llama
+/// fullName; en la tabla, la columna es full_name. Solo este archivo lo sabe.
 class SupabaseProfileDataSource {
   final SupabaseClient _client;
 
@@ -32,6 +32,19 @@ class SupabaseProfileDataSource {
       } on PostgrestException catch (e) {
         throw Exception(e.message);
       }
+    }
+  }
+
+  Future<Profile> getProfile(String id) async {
+    try {
+      final row = await _client.from('profiles').select().eq('id', id).single();
+      return Profile(
+        id: row['id'] as String,
+        username: row['username'] as String,
+        fullName: row['full_name'] as String,
+      );
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
     }
   }
 }
