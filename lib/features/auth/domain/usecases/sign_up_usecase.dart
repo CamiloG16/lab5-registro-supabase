@@ -25,7 +25,9 @@ class SignUpUseCase {
     try {
       await _profiles.createProfile(profile);
     } catch (_) {
-      // La cuenta ya existe pero quedó sin perfil: se avisa con un mensaje claro.
+      // La cuenta ya existe pero quedó sin perfil: se cierra la sesión que
+      // abrió signUp para no dejar al usuario a medias, y se avisa.
+      await _auth.signOut();
       throw Exception('La cuenta se creó, pero no se pudo guardar el perfil');
     }
     return profile;
