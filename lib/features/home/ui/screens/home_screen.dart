@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:moviles_auth/components/primary_button.dart';
+import 'package:moviles_auth/features/auth/domain/entities/profile.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:moviles_auth/components/profile_field.dart';
 import 'package:moviles_auth/theme/app_theme.dart';
+
+/// Lo que llega por la ruta /home: el perfil guardado y el correo de Auth.
+class HomeArguments {
+  final Profile profile;
+  final String email;
+
+  const HomeArguments({required this.profile, required this.email});
+}
 
 /// Shows the profile of the signed in user and lets them sign out.
 class HomeScreen extends StatelessWidget {
@@ -17,7 +28,9 @@ class HomeScreen extends StatelessWidget {
     this.email = 'correo@ejemplo.com',
   });
 
-  void _signOut(BuildContext context) {
+  Future<void> _signOut(BuildContext context) async {
+    await context.read<SignOutUseCase>()();
+    if (!context.mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 

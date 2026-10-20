@@ -6,9 +6,11 @@ import 'package:moviles_auth/features/auth/data/repository/auth_repository_impl.
 import 'package:moviles_auth/features/auth/data/repository/profile_repository_impl.dart';
 import 'package:moviles_auth/features/auth/data/source/supabase_auth_data_source.dart';
 import 'package:moviles_auth/features/auth/data/source/supabase_profile_data_source.dart';
-import 'package:moviles_auth/features/auth/domain/entities/profile.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_in_usecase.dart';
+import 'package:moviles_auth/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:moviles_auth/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:moviles_auth/features/home/ui/screens/home_screen.dart';
+import 'package:moviles_auth/features/login/ui/bloc/login_bloc.dart';
 import 'package:moviles_auth/features/login/ui/screens/login_screen.dart';
 import 'package:moviles_auth/features/register/ui/bloc/register_bloc.dart';
 import 'package:moviles_auth/features/register/ui/screens/register_screen.dart';
@@ -35,7 +37,19 @@ class App extends StatelessWidget {
       theme: buildTheme(),
       initialRoute: '/login',
       routes: {
-        '/login': (_) => const LoginScreen(),
+        '/login': (_) => BlocProvider(
+          create: (_) => LoginBloc(
+            SignInUseCase(
+              AuthRepositoryImpl(
+                SupabaseAuthDataSource(Supabase.instance.client),
+              ),
+              ProfileRepositoryImpl(
+                SupabaseProfileDataSource(Supabase.instance.client),
+              ),
+            ),
+          ),
+          child: const LoginScreen(),
+        ),
         '/register': (_) => BlocProvider(
           create: (_) => RegisterBloc(
             SignUpUseCase(
@@ -50,11 +64,19 @@ class App extends StatelessWidget {
           child: const RegisterScreen(),
         ),
         '/home': (context) {
-          final profile =
-              ModalRoute.of(context)!.settings.arguments as Profile;
-          return HomeScreen(
-            username: profile.username,
-            fullName: profile.fullName,
+          final args =
+              ModalRoute.of(context)!.settings.arguments as HomeArguments;
+          return RepositoryProvider(
+            create: (_) => SignOutUseCase(
+              AuthRepositoryImpl(
+                SupabaseAuthDataSource(Supabase.instance.client),
+              ),
+            ),
+            child: HomeScreen(
+              username: args.profile.username,
+              fullName: args.profile.fullName,
+              email: args.email,
+            ),
           );
         },
       },

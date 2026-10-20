@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:moviles_auth/components/error_message.dart';
 import 'package:moviles_auth/components/primary_button.dart';
+import 'package:moviles_auth/features/home/ui/screens/home_screen.dart';
+import 'package:moviles_auth/features/login/ui/bloc/login_bloc.dart';
+import 'package:moviles_auth/features/login/ui/bloc/login_event.dart';
+import 'package:moviles_auth/features/login/ui/bloc/login_state.dart';
 import 'package:moviles_auth/theme/app_theme.dart';
 
 /// Sign in form with email and password.
@@ -15,7 +20,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
+
+  /// Solo para la validación de campos vacíos, que se queda en la pantalla.
   String? _errorMessage;
 
   @override
@@ -29,13 +35,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Escribe tu correo y tu contraseña';
-      });
+      setState(() => _errorMessage = 'Escribe tu correo y tu contraseña');
       return;
     }
-    Navigator.pushReplacementNamed(context, '/home');
+    setState(() => _errorMessage = null);
+    context.read<LoginBloc>().add(
+      LoginSubmitted(email: email, password: password),
+    );
   }
 
   @override
@@ -45,7 +51,33 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
+          child: BlocListener<LoginBloc, LoginState>(
+            listener: (context, state) {
+              if (state.status == LoginStatus.success) {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/home',
+                  arguments: HomeArguments(
+                    profile: state.profile!,
+                    email: state.user!.email,
+                  ),
+                );
+              }
+            },
+            child: BlocBuilder<LoginBloc, LoginState>(
+              builder: (context, state) => _form(state),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _form(LoginState state) {
+    final isLoading = state.status == LoginStatus.loading;
+    final errorMessage = _errorMessage ??
+        (state.status == LoginStatus.failure ? state.errorMessage : null);
+    return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
@@ -81,13 +113,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              if (_errorMessage != null) ...[
-                ErrorMessage(message: _errorMessage!),
+              if (errorMessage != null) ...[
+                ErrorMessage(message: errorMessage),
                 const SizedBox(height: 16),
               ],
               PrimaryButton(
                 label: 'Iniciar sesión',
-                isLoading: _isLoading,
+                isLoading: isLoading,
                 onPressed: _submit,
               ),
               const SizedBox(height: 8),
@@ -99,9 +131,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
+          );
   }
 }
