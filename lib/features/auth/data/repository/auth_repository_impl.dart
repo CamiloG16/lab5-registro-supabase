@@ -1,0 +1,15 @@
+import 'package:moviles_auth/features/auth/data/source/supabase_auth_data_source.dart';
+import 'package:moviles_auth/features/auth/domain/entities/auth_user.dart';
+import 'package:moviles_auth/features/auth/domain/repository/auth_repository.dart';
+
+/// Cumple el contrato delegando en el data source.
+class AuthRepositoryImpl implements AuthRepository {
+  final SupabaseAuthDataSource _dataSource;
+
+  AuthRepositoryImpl(this._dataSource);
+
+  @override
+  Future<AuthUser> signUp({required String email, required String password}) {
+    return _dataSource.signUp(email: email, password: password);
+  }
+}
