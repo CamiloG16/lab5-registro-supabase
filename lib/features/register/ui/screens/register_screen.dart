@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moviles_auth/components/error_message.dart';
 import 'package:moviles_auth/components/primary_button.dart';
 import 'package:moviles_auth/features/register/ui/bloc/register_bloc.dart';
+import 'package:moviles_auth/features/register/ui/bloc/register_event.dart';
+import 'package:moviles_auth/features/register/ui/bloc/register_state.dart';
 import 'package:moviles_auth/theme/app_theme.dart';
 
 /// Sign up form with username, full name, email and password.
@@ -20,7 +22,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
+
+  /// Solo para las dos validaciones que se quedan en la pantalla.
   String? _errorMessage;
 
   @override
@@ -34,10 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showError(String message) {
-    setState(() {
-      _isLoading = false;
-      _errorMessage = message;
-    });
+    setState(() => _errorMessage = message);
   }
 
   void _submit() {
@@ -56,18 +56,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _showError('Las contraseñas no coinciden');
       return;
     }
-
-    //Romper app para incluir el Registro
+    setState(() => _errorMessage = null);
     context.read<RegisterBloc>().add(
-      OnRegisterSubmittedEvent(
-        fullName: fullName,
+      RegisterSubmitted(
         username: username,
+        fullName: fullName,
         email: email,
         password: password,
       ),
     );
-
-    //Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override
@@ -79,29 +76,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           padding: const EdgeInsets.all(24),
           child: BlocListener<RegisterBloc, RegisterState>(
             listener: (context, state) {
-              if (state is RegisterSuccessState) {
-                Navigator.pushReplacementNamed(context, '/home');
+              if (state.status == RegisterStatus.success) {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/home',
+                  arguments: state.profile,
+                );
               }
             },
             child: BlocBuilder<RegisterBloc, RegisterState>(
-              builder: (context, state) {
-                if (state is RegisterIdleState) {
-                  return registerForm();
-                } else if (state is RegisterLoadingState) {
-                  return Column(
-                    children: [
-                      Text("Espere mientras tanto"),
-                      CircularProgressIndicator(),
-                    ],
-                  );
-                } else if (state is RegisterSuccessState) {
-                  return SizedBox.shrink();
-                } else if (state is RegisterErrorState) {
-                  return Text("Error ${state.errorMessage}");
-                } else {
-                  return registerForm();
-                }
-              },
+              builder: (context, state) => _form(state),
             ),
           ),
         ),
@@ -109,7 +93,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget registerForm() {
+  Widget _form(RegisterState state) {
+    final isLoading = state.status == RegisterStatus.loading;
+    final errorMessage = _errorMessage ??
+        (state.status == RegisterStatus.failure ? state.errorMessage : null);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -173,13 +160,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        if (_errorMessage != null) ...[
-          ErrorMessage(message: _errorMessage!),
+        if (errorMessage != null) ...[
+          ErrorMessage(message: errorMessage),
           const SizedBox(height: 16),
         ],
         PrimaryButton(
           label: 'Registrarme',
-          isLoading: _isLoading,
+          isLoading: isLoading,
           onPressed: _submit,
         ),
         const SizedBox(height: 8),
